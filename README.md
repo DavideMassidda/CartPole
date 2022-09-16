@@ -16,14 +16,6 @@ The animated image below renders a playing round performed by the reinforcement 
 
 According to the game rules, the play is solved when the total reward of an episode is at least equal to 200. At each successful action, the environment recognizes a reward of 1. The session closes when the pole falls or a reward of 500 is obtained.
 
-## The playing framework
-
-The **observation space** is the set of information describing the environment at each playing step (8-dimensional vector): the coordinates of the lander in x and y, its linear velocities in x and y, its angle, its angular velocity, and two booleans that represent whether each leg is in contact with the ground or not.
-
-The **action space** is the set of actions the agent can take. LunarLander comes with two possible action spaces: discrete and continuous. In this project, I faced the **discrete** problem, so the action space accounts for four discrete options: do nothing, fire left orientation engine, fire main engine, fire right orientation engine.
-
-The **reward system** are the rules followed by the environment to send rewards to the agent after each action. See the [documentation](https://www.gymlibrary.dev/environments/box2d/lunar_lander/) for details.
-
 ## Content of this repository
 
 The script `CartPole.py` contains a Python class (`Agent`) that implements an agent driving the lander, which uses a vanilla policy gradient method to make decisions about actions. The `cache` stores a backup of a trained agent ready to use (see the notes in the notebook `main.ipynb`). This agent solves about the 93% of episodes with a median reward of 500 (the maximum).

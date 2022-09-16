@@ -30,7 +30,7 @@ Model parameters are optimized by the Adam algorithm with a learning rate `lr=0.
 
 The rewards obtained during an episode are discounted for a `gamma=0.99` as they move away from the first action of the episode.
 
-## Playing with the autopilot
+## Playing with the agent
 
 ```
 # Import packages

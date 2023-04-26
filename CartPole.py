@@ -1,7 +1,9 @@
+import gymnasium as gym
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from copy import deepcopy
 import random
 import time
 
@@ -14,13 +16,9 @@ class Policy(nn.Module):
         self.probab = nn.Softmax(dim=0)
 
     def forward(self, x):
-        #x_orig = x
         x = F.relu(self.dense1(x))
-        #x = F.relu(self.dense2(x))
         x = self.output(x)
         x = self.probab(x)
-        #if torch.isnan(x).sum() > 0:
-        #    pdb.set_trace()
         return x
 
 class Agent:
@@ -60,15 +58,6 @@ class Agent:
         self.model.eval()
         return self.__get_action(act_prob)
 
-    def get_returns_old(self, rewards):
-        nt = len(rewards)
-        gamma_exp = self.gamma ** np.flip(np.arange(nt))
-        disc_rewards = np.zeros(nt)
-        for t in range(nt):
-            disc_rewards[t] = np.sum(rewards[t:] * gamma_exp[t:])
-        disc_rewards /= disc_rewards.max()
-        return disc_rewards
-
     def get_returns(self, rewards):
         times = torch.arange(len(rewards)).float()
         disc_rewards = torch.pow(self.gamma, times) * rewards
@@ -77,7 +66,7 @@ class Agent:
         return disc_rewards
 
     def get_loss(self, preds, disc_rewards):
-        return -1 * torch.sum(disc_rewards * torch.log(preds)) # e non torch.sum
+        return -1 * torch.sum(disc_rewards * torch.log(preds))
 
     def __learn(self, transitions):
         # Set model in train mode
@@ -108,14 +97,15 @@ class Agent:
         self.model.train()
         for i in range(n_episodes):
             self.train_rewards.append(0.0) # Initialize the episode reward
-            curr_state = environment.reset() # Reset the environment and obtain the initial state
+            curr_state = environment.reset()[0] # Reset the environment and obtain the initial state
             done = False # Will be True when the episode is end
             transitions = [[], [], []]
             while not done:
                 # Take an action
                 action = self.decide(curr_state)
-                prev_state = curr_state
-                curr_state, reward, done, info = environment.step(action)
+                prev_state = deepcopy(curr_state)
+                curr_state, reward, term, trunc = environment.step(action)[:4]
+                done = term or trunc
                 # Trace the performance of the episode
                 self.train_rewards[-1] += reward
                 # Save the history of the episode
@@ -162,16 +152,16 @@ def bin_mean(x, window=10):
     bin_size = np.sum(kernel, axis=0)
     return x @ kernel / bin_size
 
-def play(environment, agent, render=False, sleep=0):
+def play(agent, sleep=0, random_state=None, render=False):
     """
-    Play with the agent: land on the Moon!
+    Play with the agent: walk on lands!
 
-    :param environment: the LunarLander-v2 gym environment.
     :param agent: an agent of Autopilot class.
     :param render: boolean, specifies if render the episode.
     :param sleep: number of seconds elapsing between frames.
     """
-    state = environment.reset()
+    environment = gym.make('CartPole-v1', render_mode='human')
+    state = environment.reset(seed=random_state)[0]
     if render == True:
         environment.render()
     else:
@@ -183,7 +173,8 @@ def play(environment, agent, render=False, sleep=0):
         duration += 1
         time.sleep(sleep)
         action = agent.decide(state)
-        state, reward, done, _ = environment.step(action)
+        state, reward, term, trunc = environment.step(action)[:4]
+        done = term or trunc or (duration == 300)
         episode_reward += reward
         if render == True:
             environment.render()
@@ -196,8 +187,8 @@ def test(environment, agent, n_episodes):
     """
     Test the agent performance
 
-    :param environment: the LunarLander-v2 gym environment.
-    :param agent: an agent of Autopilot class.
+    :param environment: the CartPole-v1 gym environment.
+    :param agent: an agent of class Agent.
     :param n_episodes: integer, number of episodes to run.
     :return: numeric list, total reward obtained at each training episode, sorted in time order.
     """

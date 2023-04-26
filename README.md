@@ -1,8 +1,12 @@
 # Solving the Cart Pole problem with vanilla policy gradient algorithm
 
-CartPole is a 2D playing environment of the [gym Python library](https://github.com/openai/gym) from OpenAI. The games provided by `gym` have a special feature: you can interact with the playing environment by command line. Therefore, by using a terminal, you can get the status of the environment, make your action and evaluate the new status of the environment, then take another action, and so on until the game termination.
+CartPole is a 2D playing environment of the [Gym Python library](https://github.com/openai/gym) from OpenAI, now maintained by the Farama Foundation under the name of Gymnasium. The games provided by Gym have a special feature: you can interact with the playing environment by command line. Therefore, by using a terminal, you can get the status of the environment, take your action and evaluate the new status of the environment, then take another action, and so on until the game termination.
 
-To get started with `gym`, please inspect the [official page](https://www.gymlibrary.dev/). Moreover, you can find a good tutorial [here](https://blog.paperspace.com/getting-started-with-openai-gym/).
+To get started with `gymnasium`, please inspect the [official page](https://gymnasium.farama.org/). Moreover, [here](https://blog.paperspace.com/getting-started-with-openai-gym/) you can find a good tutorial based on the original Gym.
+
+## Requirements
+
+This repository is based on the Python package `gymnasium` version `0.28.1`. Gymnasium is a fork of OpenAI's Gym library maintained by developers of the Farama Foundation (OpenAI no longer maintains the original project).
 
 ## The cart pole problem
 
@@ -46,5 +50,5 @@ with open('cache/agent.pickle', 'rb') as file:
     agent = pickle.load(file)
 
 # Play an episode
-cp.play(env, agent, render=True, sleep=0.01)
+cp.play(agent, render=True, sleep=0.01)
 ```

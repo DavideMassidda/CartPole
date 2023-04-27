@@ -1,0 +1,28 @@
+# G: && cd G:\Il mio Drive\RL\CartPole
+import gymnasium as gym
+import CartPole as cp
+import pickle
+
+# Training ----------------------------------------------------
+
+env = gym.make('CartPole-v1')
+agent = cp.Agent(env)
+agent.train(env, n_episodes=500)
+
+with open('cache/agent.pickle', 'wb') as file:
+    pickle.dump(agent, file)
+
+# Evaluation --------------------------------------------------
+
+#with open('cache/agent.pickle', 'rb') as file:
+#    agent = pickle.load(file)
+
+#performances = [cp.play(agent) for i in range(1000)]
+
+performances = []
+for i in range(1000):
+    print('test', i)
+    performances.append(cp.play(agent))
+
+with open('cache/performances.pickle', 'wb') as file:
+    pickle.dump(performances, file)

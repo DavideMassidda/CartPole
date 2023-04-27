@@ -1,4 +1,4 @@
-# Solving the Cart Pole problem with vanilla policy gradient algorithm
+# Solving the Cart Pole problem with the Vanilla Policy Gradient algorithm
 
 CartPole is a 2D playing environment of the [Gym Python library](https://github.com/openai/gym) from OpenAI, now maintained by the Farama Foundation under the name of Gymnasium. The games provided by Gym have a special feature: you can interact with the playing environment by command line. Therefore, by using a terminal, you can get the status of the environment, take your action and evaluate the new status of the environment, then take another action, and so on until the game termination.
 
@@ -18,7 +18,7 @@ The animated image below renders a playing round performed by the reinforcement 
 
 ![CartPole session](images/playing-session.gif)
 
-According to the game rules, the play is solved when the total reward of an episode is at least equal to 200. At each successful action, the environment recognizes a reward of 1. The session closes when the pole falls or a reward of 500 is obtained.
+The goal of the game is to keep the pole upright for as long as possible. At each successful action, the environment recognizes a reward of 1. The session closes when the pole falls or a reward of 500 is obtained.
 
 ## Content of this repository
 

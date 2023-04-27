@@ -10,9 +10,8 @@ import time
 class Policy(nn.Module):
     def __init__(self):
         super().__init__()
-        self.dense1 = nn.Linear(4, 180)
-        #self.dense2 = nn.Linear(128, 128)
-        self.output = nn.Linear(180, 2)
+        self.dense1 = nn.Linear(4, 170)
+        self.output = nn.Linear(170, 2)
         self.probab = nn.Softmax(dim=0)
 
     def forward(self, x):
@@ -34,55 +33,33 @@ class Agent:
         self.model.eval()
         self.optimizer = torch.optim.Adam(params=self.model.parameters(), lr=lr)
 
-    def __get_action(self, act_prob):
-        act_prob = act_prob.data.numpy()
-        # Replace NaN, is any
-        for j in range(self.n_actions):
-            if np.isnan(act_prob[j]):
-                print('Warning: NaN found')
-                act_prob = np.full(self.n_actions, fill_value=0.5/self.n_actions)
-                act_prob /= np.sum(act_prob)
-                break
-        # Choice sampling with the policy
-        action = np.random.choice(self.action_space, p=act_prob)
-        return action
-
     def decide(self, state):
         with torch.no_grad():
-            act_prob = self.model(torch.from_numpy(state).float())
-        return self.__get_action(act_prob)
+            action_probs = self.model(torch.from_numpy(state).float())
+        action = np.random.choice(self.action_space, p=action_probs.data.numpy())
+        return action
 
-    def __decide(self, state):
-        self.model.train()
-        act_prob = self.model(torch.from_numpy(state).float())
-        self.model.eval()
-        return self.__get_action(act_prob)
-
-    def get_returns(self, rewards):
+    def discount_rewards(self, rewards):
         times = torch.arange(len(rewards)).float()
         disc_rewards = torch.pow(self.gamma, times) * rewards
-        #disc_rewards -= disc_rewards.mean(axis=0)
-        disc_rewards /= disc_rewards.max()
+        disc_rewards /= disc_rewards.max() # Normalize to improve numerical stability
         return disc_rewards
-
-    def get_loss(self, preds, disc_rewards):
-        return -1 * torch.sum(disc_rewards * torch.log(preds))
 
     def __learn(self, transitions):
         # Set model in train mode
         self.model.train()
         # Convert lists to arrays
-        state_batch = torch.tensor(np.float32(transitions[0])) # state
-        action_batch = torch.tensor(np.int64(transitions[1])) # action
-        reward_batch = torch.tensor(np.float32(transitions[2])) # reward
+        states = torch.tensor(np.float32(transitions[0]))
+        actions = torch.tensor(np.int64(transitions[1]))
+        rewards = torch.tensor(np.float32(transitions[2]))
         # Calculate total rewards
-        return_batch = self.get_returns(reward_batch.flip(dims=(0,)))
+        returns = self.discount_rewards(rewards.flip(dims=(0,))).view(-1,1)
         # Recomputes the action-probabilities for all the states in the episode
-        pred_batch = self.model(state_batch)
+        probs = self.model(states)
         # Select the predicted probabilities of the actions that were actually taken
-        prob_batch = pred_batch.gather(dim=1, index=action_batch.long().view(-1,1)).squeeze()
-        # Adjust model weights
-        loss = self.get_loss(prob_batch, return_batch)
+        action_probs = probs.gather(dim=1, index=actions.long().view(-1,1)).squeeze()
+        # Calculates the loss
+        loss = -torch.sum(torch.log(action_probs) * returns)
         # Zero the gradient
         self.optimizer.zero_grad()
         # Backward propagate the loss
@@ -157,10 +134,12 @@ def play(agent, sleep=0, random_state=None, render=False):
     Play with the agent: walk on lands!
 
     :param agent: an agent of Autopilot class.
-    :param render: boolean, specifies if render the episode.
     :param sleep: number of seconds elapsing between frames.
+    :param random_state: seed for the environment generation.
+    :param render: boolean, specifies if render the episode.
     """
-    environment = gym.make('CartPole-v1', render_mode='human')
+    render_mode = None if render is False else 'human'
+    environment = gym.make('CartPole-v1', render_mode=render_mode)
     state = environment.reset(seed=random_state)[0]
     if render == True:
         environment.render()
@@ -174,23 +153,11 @@ def play(agent, sleep=0, random_state=None, render=False):
         time.sleep(sleep)
         action = agent.decide(state)
         state, reward, term, trunc = environment.step(action)[:4]
-        done = term or trunc or (duration == 300)
+        done = term or trunc or (duration == 500)
         episode_reward += reward
         if render == True:
             environment.render()
     if render == True:
         time.sleep(sleep * 2)
         environment.close()
-    return {'duration': duration, 'reward': episode_reward, 'solved': episode_reward >= 200}
-
-def test(environment, agent, n_episodes):
-    """
-    Test the agent performance
-
-    :param environment: the CartPole-v1 gym environment.
-    :param agent: an agent of class Agent.
-    :param n_episodes: integer, number of episodes to run.
-    :return: numeric list, total reward obtained at each training episode, sorted in time order.
-    """
-    total_rewards = [play(environment, agent) for i in range(n_episodes)]
-    return total_rewards
+    return {'duration': duration, 'reward': episode_reward, 'solved': episode_reward >= 500}

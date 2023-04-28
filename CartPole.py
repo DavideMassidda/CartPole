@@ -21,7 +21,7 @@ class Policy(nn.Module):
         return x
 
 class Agent:
-    def __init__(self, environment, model=Policy, gamma=0.99, lr=0.0009):
+    def __init__(self, environment, model=Policy, gamma=0.99, lr=0.001):
         # Environment features
         self.n_actions = environment.action_space.n
         self.action_space = np.array([*range(environment.action_space.n)])
@@ -41,7 +41,7 @@ class Agent:
 
     def discount_rewards(self, rewards):
         times = torch.arange(len(rewards)).float()
-        disc_rewards = torch.pow(self.gamma, times) * rewards
+        disc_rewards = torch.cumsum(torch.pow(self.gamma, times)*rewards, dim=0)
         disc_rewards /= disc_rewards.max() # Normalize to improve numerical stability
         return disc_rewards
 
@@ -51,9 +51,9 @@ class Agent:
         # Convert lists to arrays
         states = torch.tensor(np.float32(transitions[0]))
         actions = torch.tensor(np.int64(transitions[1]))
-        rewards = torch.tensor(np.float32(transitions[2]))
+        rewards = torch.tensor(np.float32(transitions[2])).flip(dims=(0,))
         # Calculate total rewards
-        returns = self.discount_rewards(rewards.flip(dims=(0,))).view(-1,1)
+        returns = self.discount_rewards(rewards).view(-1,1)
         # Recomputes the action-probabilities for all the states in the episode
         probs = self.model(states)
         # Select the predicted probabilities of the actions that were actually taken
